@@ -2,91 +2,254 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:SerialAssistant.ViewModel"
-        xmlns:conv="clr-namespace:SerialAssistant.Converters"
-        Title="串口助手 V2.0" MinHeight="620" MinWidth="900" Height="720" Width="1100"
-        WindowStartupLocation="CenterScreen" Closing="Window_Closing">
-    <Window.Resources>
-        <conv:BoolToColorConverter x:Key="BoolToColorConverter"/>
-    </Window.Resources>
+        xmlns:model="clr-namespace:SerialAssistant.Model"
+        Title="串口助手 · Doraemon"
+        MinHeight="660" MinWidth="960" Height="780" Width="1160"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        Closing="Window_Closing">
     <Window.DataContext><vm:MainViewModel/></Window.DataContext>
 
-    <Grid Margin="16">
+    <Grid Margin="22,16,22,14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="190"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Header="串口连接" Grid.Row="0" Margin="0,0,0,10">
-            <Grid Margin="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="110"/>
-                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="110"/>
-                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="75"/>
-                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="75"/>
-                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="90"/>
-                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="端口" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <ComboBox Grid.Column="1" ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}" IsEnabled="{Binding CanConfigure}"/>
-                <TextBlock Grid.Column="2" Text="波特率" VerticalAlignment="Center" Margin="12,0,6,0"/>
-                <ComboBox Grid.Column="3" ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaudRate}" IsEnabled="{Binding CanConfigure}"/>
-                <TextBlock Grid.Column="4" Text="数据位" VerticalAlignment="Center" Margin="12,0,6,0"/>
-                <ComboBox Grid.Column="5" ItemsSource="{Binding DataBits}" SelectedItem="{Binding SelectedDataBits}" IsEnabled="{Binding CanConfigure}"/>
-                <TextBlock Grid.Column="6" Text="停止位" VerticalAlignment="Center" Margin="12,0,6,0"/>
-                <ComboBox Grid.Column="7" ItemsSource="{Binding StopBitsOptions}" SelectedItem="{Binding SelectedStopBits}" IsEnabled="{Binding CanConfigure}"/>
-                <TextBlock Grid.Column="8" Text="校验位" VerticalAlignment="Center" Margin="12,0,6,0"/>
-                <ComboBox Grid.Column="9" ItemsSource="{Binding ParityOptions}" SelectedItem="{Binding SelectedParity}" IsEnabled="{Binding CanConfigure}"/>
-                <StackPanel Grid.Column="10" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="刷新" Command="{Binding RefreshPortsCommand}" Margin="12,0,8,0"/>
-                    <Button Content="{Binding OpenCloseText}" Command="{Binding OpenCloseCommand}" MinWidth="100"
-                            Background="{Binding IsOpenPort, Converter={StaticResource BoolToColorConverter}, ConverterParameter=open}"/>
-                </StackPanel>
-                <TextBlock Grid.Column="11" Text="{Binding ConnectionStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="16,0,0,0"/>
-            </Grid>
-        </GroupBox>
+        <!-- ═══════════ 页眉 ═══════════ -->
+        <Grid Grid.Row="0" Margin="2,0,2,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <GroupBox Header="数据接收" Grid.Row="1" Margin="0,0,0,10">
-            <Grid Margin="10">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <Image Source="{StaticResource DoraemonFace}" Width="50" Height="50"
+                   VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+
+            <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="串口助手" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/>
+                <TextBlock Text="Doraemon Serial Assistant" FontSize="10.5" Margin="1,2,0,0"
+                           Foreground="{StaticResource InkFaint}"/>
+            </StackPanel>
+
+            <!-- 连接状态胶囊 -->
+            <Border Grid.Column="2" VerticalAlignment="Center"
+                    Background="{StaticResource Surface}" CornerRadius="16"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1"
+                    Padding="14,7">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{StaticResource InkFaint}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static model:SerialConnectionState.Connected}">
+                                        <Setter Property="Fill" Value="{StaticResource SuccessGreen}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static model:SerialConnectionState.Connecting}">
+                                        <Setter Property="Fill" Value="{StaticResource BellYellow}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static model:SerialConnectionState.Disconnecting}">
+                                        <Setter Property="Fill" Value="{StaticResource BellYellow}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static model:SerialConnectionState.Faulted}">
+                                        <Setter Property="Fill" Value="{StaticResource DoraemonRed}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding ConnectionStatus}" FontSize="12.5" FontWeight="SemiBold"
+                               Foreground="{StaticResource Ink}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══════════ 串口连接 ═══════════ -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,13">
+                    <Border Style="{StaticResource SectionMark}"/>
+                    <TextBlock Text="串口连接" Style="{StaticResource SectionTitle}"/>
+                </StackPanel>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="0.85*"/>
+                        <ColumnDefinition Width="0.85*"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="端口" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}"
+                                  IsEnabled="{Binding CanConfigure}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="波特率" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaudRate}"
+                                  IsEnabled="{Binding CanConfigure}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                        <TextBlock Text="数据位" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding DataBits}" SelectedItem="{Binding SelectedDataBits}"
+                                  IsEnabled="{Binding CanConfigure}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3" Margin="0,0,12,0">
+                        <TextBlock Text="停止位" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding StopBitsOptions}" SelectedItem="{Binding SelectedStopBits}"
+                                  IsEnabled="{Binding CanConfigure}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4" Margin="0,0,16,0">
+                        <TextBlock Text="校验位" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding ParityOptions}" SelectedItem="{Binding SelectedParity}"
+                                  IsEnabled="{Binding CanConfigure}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Content="刷新" Style="{StaticResource GhostButton}"
+                                Command="{Binding RefreshPortsCommand}" Margin="0,0,9,0"/>
+                        <Button Content="{Binding OpenCloseText}" Style="{StaticResource ConnectButton}"
+                                Command="{Binding OpenCloseCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══════════ 数据接收 ═══════════ -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Margin="0,0,0,11">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource SectionMark}"/>
+                        <TextBlock Text="数据接收" Style="{StaticResource SectionTitle}" Margin="0,0,16,0"/>
                         <CheckBox Content="HEX 显示" IsChecked="{Binding IsShowHex}"/>
                         <CheckBox Content="显示时间戳" IsChecked="{Binding ShowTimestamp}"/>
                         <CheckBox Content="暂停显示" IsChecked="{Binding PauseDisplay}"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                        <TextBlock VerticalAlignment="Center" Text="接收："/>
-                        <TextBlock VerticalAlignment="Center" Text="{Binding ReceivedBytesCount}" FontWeight="Bold"/>
-                        <TextBlock VerticalAlignment="Center" Text=" 字节" Margin="0,0,12,0"/>
-                        <Button Content="导出为 Markdown" Command="{Binding ExportReceivedTextCommand}" Margin="0,0,8,0"/>
-                        <Button Content="清空" Command="{Binding ClearReceivedTextCommand}"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- 接收计数 -->
+                        <Border Background="{StaticResource DoraemonBlueSoft}" CornerRadius="13"
+                                Padding="12,6" Margin="0,0,10,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="接收" FontSize="11.5" VerticalAlignment="Center"
+                                           Foreground="{StaticResource InkMuted}"/>
+                                <TextBlock Text="{Binding ReceivedBytesCount}" FontSize="12.5" FontWeight="Bold"
+                                           Margin="6,0,4,0" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DoraemonBlueDeep}"/>
+                                <TextBlock Text="字节" FontSize="11.5" VerticalAlignment="Center"
+                                           Foreground="{StaticResource InkMuted}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="导出" Style="{StaticResource GhostButton}" Height="30" MinWidth="64"
+                                Command="{Binding ExportReceivedTextCommand}" Margin="0,0,8,0"/>
+                        <Button Content="清空" Style="{StaticResource GhostButton}" Height="30" MinWidth="64"
+                                Command="{Binding ClearReceivedTextCommand}"/>
                     </StackPanel>
-                </DockPanel>
-                <TextBox Grid.Row="1" x:Name="ReceivedTextBox" Text="{Binding ReceivedText}" IsReadOnly="True" AcceptsReturn="True"
-                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="14" TextWrapping="Wrap"/>
-            </Grid>
-        </GroupBox>
+                </Grid>
 
-        <GroupBox Header="数据发送" Grid.Row="2" Margin="0,0,0,10">
-            <Grid Margin="10">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-                <TextBox Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
-                         VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="14"/>
-                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                    <CheckBox Content="HEX 发送" IsChecked="{Binding IsSendHex}"/>
-                    <CheckBox Content="添加 CRC16-Modbus" IsChecked="{Binding IsAddCRC}" Margin="0,8,0,0"/>
-                    <Button Content="发送" Command="{Binding SendCommand}" Margin="0,14,0,8" IsDefault="True"/>
-                    <Button Content="清空发送区" Command="{Binding ClearSendTextCommand}"/>
-                    <TextBlock Text="{Binding SentBytesCount, StringFormat=已发送：{0} 字节}" Margin="0,14,0,0" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
+                <Border Grid.Row="1" Background="{StaticResource FieldBg}" CornerRadius="10"
+                        BorderBrush="{StaticResource Line}" BorderThickness="1">
+                    <Grid>
+                        <!-- 空状态：淡淡的哆啦A梦水印 -->
+                        <StackPanel x:Name="EmptyHint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsHitTestVisible="False">
+                            <Image Source="{StaticResource DoraemonFace}" Width="74" Height="74" Opacity="0.10"/>
+                            <TextBlock Text="等待数据…" HorizontalAlignment="Center" Margin="0,10,0,0"
+                                       FontSize="12.5" Foreground="{StaticResource InkFaint}" Opacity="0.85"/>
+                        </StackPanel>
 
-        <Border Grid.Row="3" Background="#EEF2F5" CornerRadius="4" Padding="10,6">
-            <TextBlock Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"/>
+                        <TextBox x:Name="ReceivedTextBox" IsReadOnly="True" AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="13.5" TextWrapping="NoWrap" IsUndoEnabled="False"/>
+                    </Grid>
+                </Border>
+            </Grid>
         </Border>
+
+        <!-- ═══════════ 数据发送 ═══════════ -->
+        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,11">
+                    <Border Style="{StaticResource SectionMark}"/>
+                    <TextBlock Text="数据发送" Style="{StaticResource SectionTitle}"/>
+                </StackPanel>
+
+                <Grid Height="152">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="{StaticResource FieldBg}" CornerRadius="10"
+                            BorderBrush="{StaticResource Line}" BorderThickness="1">
+                        <Grid>
+                            <TextBlock Text="在此输入要发送的内容…" Margin="12,10,0,0"
+                                       FontSize="12.5" IsHitTestVisible="False"
+                                       Foreground="{StaticResource InkFaint}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SendText}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBox Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                                     FontFamily="Consolas" FontSize="13.5"/>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Width="186" Margin="16,0,0,0">
+                        <CheckBox Content="HEX 发送" IsChecked="{Binding IsSendHex}" HorizontalAlignment="Left"/>
+                        <CheckBox Content="附加 CRC16-Modbus" IsChecked="{Binding IsAddCRC}"
+                                  HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                        <Button Content="发 送" Command="{Binding SendCommand}" IsDefault="True" Margin="0,14,0,0"/>
+                        <Button Content="清空发送区" Style="{StaticResource GhostButton}"
+                                Command="{Binding ClearSendTextCommand}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding SentBytesCount, StringFormat=已发送 {0} 字节}"
+                                   FontSize="11.5" Margin="0,11,0,0" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource InkFaint}"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══════════ 状态栏 ═══════════ -->
+        <Grid Grid.Row="4" Margin="3,0,3,0">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{StaticResource BellIcon}" Width="15" Height="15"
+                       Opacity="0.75" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource HintText}"
+                           Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

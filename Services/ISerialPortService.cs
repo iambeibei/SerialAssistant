@@ -8,8 +8,11 @@ public interface ISerialPortService : IAsyncDisposable
     string? CurrentPortName { get; }
     long ReceivedBytesCount { get; }
     long SentBytesCount { get; }
+
+    /// <summary>因接收队列溢出而丢弃的字节数。</summary>
+    long DroppedBytesCount { get; }
+
     event EventHandler? StateChanged;
-    event EventHandler? StatisticsChanged;
     event EventHandler<Exception>? CommunicationError;
 
     string[] GetPortNames();

@@ -6,9 +6,19 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+
+    <!-- 分发给他人时，这些元数据会显示在 exe 的"属性 → 详细信息"里 -->
+    <AssemblyTitle>串口助手</AssemblyTitle>
+    <Product>串口助手 · Doraemon</Product>
+    <Description>串口调试助手（Doraemon Edition）</Description>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="System.IO.Ports" Version="10.0.11" />
   </ItemGroup>
 
