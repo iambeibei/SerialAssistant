@@ -1,0 +1,22 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Logs and temp
+*.log
