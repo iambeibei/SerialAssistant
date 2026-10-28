@@ -3,26 +3,51 @@
 
     <!-- ══════════════════════════════════════════════════════════
          调色板：取自哆啦A梦 —— 身体蓝、脸白、鼻子红、铃铛黄
+         品牌色只用于点缀与关键动作，大面积交给低饱和中性色
          ══════════════════════════════════════════════════════════ -->
     <SolidColorBrush x:Key="DoraemonBlue"      Color="#0B93D5"/>
     <SolidColorBrush x:Key="DoraemonBlueDeep"  Color="#0577B0"/>
-    <SolidColorBrush x:Key="DoraemonBlueSoft"  Color="#E8F4FB"/>
+    <SolidColorBrush x:Key="DoraemonBlueSoft"  Color="#EAF5FC"/>
     <SolidColorBrush x:Key="DoraemonRed"       Color="#E4453A"/>
     <SolidColorBrush x:Key="BellYellow"        Color="#F7B733"/>
     <SolidColorBrush x:Key="SuccessGreen"      Color="#3BA55D"/>
+    <SolidColorBrush x:Key="SuccessSoft"       Color="#E9F6ED"/>
+    <SolidColorBrush x:Key="SuccessLine"       Color="#BFE3CC"/>
 
-    <SolidColorBrush x:Key="Ink"        Color="#1E2A36"/>
-    <SolidColorBrush x:Key="InkMuted"   Color="#6B7B8C"/>
-    <SolidColorBrush x:Key="InkFaint"   Color="#9AA8B6"/>
+    <SolidColorBrush x:Key="Ink"        Color="#1D2B38"/>
+    <SolidColorBrush x:Key="InkMuted"   Color="#65798B"/>
+    <SolidColorBrush x:Key="InkFaint"   Color="#96A6B5"/>
     <SolidColorBrush x:Key="Surface"    Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="Canvas"     Color="#F1F6FB"/>
-    <SolidColorBrush x:Key="Line"       Color="#DEE8F1"/>
-    <SolidColorBrush x:Key="FieldBg"    Color="#F8FBFD"/>
+    <SolidColorBrush x:Key="Canvas"     Color="#F2F7FC"/>
+    <SolidColorBrush x:Key="Line"       Color="#E2EBF3"/>
+    <SolidColorBrush x:Key="LineStrong" Color="#C9DCEC"/>
+    <SolidColorBrush x:Key="FieldBg"    Color="#FAFCFE"/>
+
+    <LinearGradientBrush x:Key="WindowBackground" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#F9FCFE" Offset="0"/>
+        <GradientStop Color="#EDF3FA" Offset="1"/>
+    </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#19A7E5" Offset="0"/>
-        <GradientStop Color="#0B84C9" Offset="1"/>
+        <GradientStop Color="#1AA9E6" Offset="0"/>
+        <GradientStop Color="#0A86C6" Offset="1"/>
     </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PrimaryGradientHover" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#2AB4EE" Offset="0"/>
+        <GradientStop Color="#0B93D5" Offset="1"/>
+    </LinearGradientBrush>
+
+    <!-- 统一的键盘焦点环，替代默认虚线框 -->
+    <Style x:Key="ControlFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-3" CornerRadius="12" Opacity="0.55"
+                            BorderBrush="{StaticResource DoraemonBlue}" BorderThickness="1.5"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <!-- ══════════════════════════════════════════════════════════
          哆啦A梦头像（矢量，可任意缩放复用）
@@ -111,21 +136,29 @@
     </DrawingImage>
 
     <!-- ══════════════════════════════════════════════════════════
-         基础排版
+         基础排版与容器
          ══════════════════════════════════════════════════════════ -->
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Foreground" Value="{StaticResource Ink}"/>
-        <Setter Property="Background" Value="{StaticResource Canvas}"/>
+        <Setter Property="Background" Value="{StaticResource WindowBackground}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
     </Style>
 
+    <!-- 卡片：极浅描边 + 一层向下扩散的柔影，制造浮起感 -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource Surface}"/>
-        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="CornerRadius" Value="16"/>
         <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="18,15"/>
+        <Setter Property="Padding" Value="20,17"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#12314B" Opacity="0.05" BlurRadius="22"
+                                  ShadowDepth="3" Direction="270"/>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="SectionTitle" TargetType="TextBlock">
@@ -138,8 +171,8 @@
     <!-- 标题前的小蓝条 -->
     <Style x:Key="SectionMark" TargetType="Border">
         <Setter Property="Width" Value="3"/>
-        <Setter Property="Height" Value="14"/>
-        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="Height" Value="13"/>
+        <Setter Property="CornerRadius" Value="1.5"/>
         <Setter Property="Background" Value="{StaticResource DoraemonBlue}"/>
         <Setter Property="Margin" Value="0,0,9,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
@@ -148,7 +181,7 @@
     <Style x:Key="FieldLabel" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11.5"/>
         <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
-        <Setter Property="Margin" Value="2,0,0,5"/>
+        <Setter Property="Margin" Value="2,0,0,6"/>
     </Style>
 
     <Style x:Key="HintText" TargetType="TextBlock">
@@ -158,17 +191,18 @@
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════
-         按钮
+         按钮：悬停换色、按下调暗，红色「断开」态也有独立悬停色
          ══════════════════════════════════════════════════════════ -->
     <Style x:Key="BaseButton" TargetType="Button">
-        <Setter Property="Height" Value="34"/>
+        <Setter Property="Height" Value="36"/>
         <Setter Property="MinWidth" Value="78"/>
-        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Padding" Value="17,0"/>
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ControlFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -176,21 +210,22 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="9"
+                            CornerRadius="10"
                             SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"/>
+                        <Grid>
+                            <Border x:Name="Shade" CornerRadius="10" Background="#0B2233"
+                                    Opacity="0" IsHitTestVisible="False"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Opacity" Value="0.87"/>
-                        </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Opacity" Value="0.72"/>
+                            <Setter TargetName="Shade" Property="Opacity" Value="0.13"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Bd" Property="Background" Value="#EDF2F7"/>
+                            <Setter TargetName="Bd" Property="Background" Value="#F0F5F9"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Line}"/>
                             <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
                             <Setter Property="Cursor" Value="Arrow"/>
@@ -204,24 +239,92 @@
     <!-- 主按钮：默认样式 -->
     <Style TargetType="Button" BasedOn="{StaticResource BaseButton}">
         <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource PrimaryGradientHover}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
-    <!-- 次要按钮：白底描边 -->
+    <!-- 次要按钮：白底描边，悬停转浅蓝 -->
     <Style x:Key="GhostButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
         <Setter Property="Background" Value="{StaticResource Surface}"/>
-        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource DoraemonBlueSoft}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+                <Setter Property="Foreground" Value="{StaticResource DoraemonBlueDeep}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 日志开关：圆点 + 文字。未开启白底灰点，开启后浅绿底绿点，直观呈现写入状态 -->
+    <Style x:Key="LogToggleButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="MinWidth" Value="106"/>
+        <Setter Property="Padding" Value="13,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" CornerRadius="10"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}">
+                            <Ellipse x:Name="Dot" Width="7" Height="7" VerticalAlignment="Center"
+                                     Margin="0,0,7,0" Fill="{StaticResource InkFaint}"/>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsLogSaving}" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SuccessSoft}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SuccessLine}"/>
+                            <Setter TargetName="Dot" Property="Fill" Value="{StaticResource SuccessGreen}"/>
+                            <Setter Property="Foreground" Value="{StaticResource SuccessGreen}"/>
+                        </DataTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- 连接按钮：未连接为蓝，已连接转为红 -->
     <Style x:Key="ConnectButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
         <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
-        <Setter Property="MinWidth" Value="108"/>
+        <Setter Property="MinWidth" Value="112"/>
         <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource PrimaryGradientHover}"/>
+            </Trigger>
             <DataTrigger Binding="{Binding IsOpenPort}" Value="True">
                 <Setter Property="Background" Value="{StaticResource DoraemonRed}"/>
             </DataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsOpenPort}" Value="True"/>
+                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="#D63C31"/>
+            </MultiDataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -233,13 +336,15 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
         <Setter Property="Margin" Value="0,0,8,0"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ControlFocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Border x:Name="Bd" CornerRadius="13" Padding="11,5"
+                    <Border x:Name="Bd" CornerRadius="14" Padding="12,6"
                             Background="Transparent"
                             BorderBrush="{StaticResource Line}"
-                            BorderThickness="1">
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="Dot" Width="6" Height="6" VerticalAlignment="Center"
                                      Margin="0,0,7,0" Fill="{StaticResource InkFaint}"/>
@@ -248,7 +353,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DoraemonBlue}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource FieldBg}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource DoraemonBlueSoft}"/>
@@ -294,11 +400,12 @@
     </Style>
 
     <Style TargetType="ComboBox">
-        <Setter Property="Height" Value="34"/>
+        <Setter Property="Height" Value="36"/>
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="Foreground" Value="{StaticResource Ink}"/>
         <Setter Property="Background" Value="{StaticResource FieldBg}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ControlFocusVisual}"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource SoftComboBoxItem}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -308,14 +415,14 @@
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bd" CornerRadius="9"
+                                    <Border x:Name="Bd" CornerRadius="10"
                                             Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                             BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                             BorderThickness="1"
                                             SnapsToDevicePixels="True">
-                                        <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
+                                        <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,13,0"
                                               Data="M0,0 L4.5,4.5 L9,0"
-                                              Stroke="{StaticResource InkMuted}" StrokeThickness="1.6"
+                                              Stroke="{StaticResource InkMuted}" StrokeThickness="1.5"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -324,27 +431,27 @@
                                         </Trigger>
                                         <Trigger Property="IsChecked" Value="True">
                                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DoraemonBlue}"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
 
-                        <ContentPresenter IsHitTestVisible="False" Margin="12,0,30,0" VerticalAlignment="Center"
+                        <ContentPresenter IsHitTestVisible="False" Margin="12,0,32,0" VerticalAlignment="Center"
                                           Content="{TemplateBinding SelectionBoxItem}"
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
 
-                        <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="5"
+                        <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="6"
                                AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
                                IsOpen="{TemplateBinding IsDropDownOpen}">
-                            <Border Background="{StaticResource Surface}" CornerRadius="10"
+                            <Border Background="{StaticResource Surface}" CornerRadius="12"
                                     BorderBrush="{StaticResource Line}" BorderThickness="1"
-                                    MinWidth="{TemplateBinding ActualWidth}"
-                                    Margin="0,0,10,10" Padding="4">
+                                    MinWidth="{TemplateBinding ActualWidth}" Padding="5">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#1E2A36" Opacity="0.12" BlurRadius="16"
-                                                      ShadowDepth="3" Direction="270"/>
+                                    <DropShadowEffect Color="#12314B" Opacity="0.13" BlurRadius="20"
+                                                      ShadowDepth="4" Direction="270"/>
                                 </Border.Effect>
                                 <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
@@ -369,10 +476,97 @@
         <Setter Property="Foreground" Value="{StaticResource Ink}"/>
         <Setter Property="CaretBrush" Value="{StaticResource DoraemonBlue}"/>
         <Setter Property="SelectionBrush" Value="{StaticResource DoraemonBlue}"/>
-        <Setter Property="SelectionOpacity" Value="0.25"/>
+        <Setter Property="SelectionOpacity" Value="0.22"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Padding" Value="12,10"/>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════
+         滚动条：细窄、无箭头，轨道透明
+         ══════════════════════════════════════════════════════════ -->
+    <Style x:Key="ScrollBarThumb" TargetType="Thumb">
+        <Setter Property="Background" Value="#C6D6E4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="4" Margin="2"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#A8BED2"/>
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+                <Setter Property="Background" Value="#93AEC6"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ScrollBarRepeatButton" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Width" Value="10"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource ScrollBarRepeatButton}"
+                                              Command="ScrollBar.PageUpCommand"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource ScrollBarThumb}"/>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource ScrollBarRepeatButton}"
+                                              Command="ScrollBar.PageDownCommand"/>
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="Height" Value="10"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollBarRepeatButton}"
+                                                      Command="ScrollBar.PageLeftCommand"/>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ScrollBarThumb}"/>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollBarRepeatButton}"
+                                                      Command="ScrollBar.PageRightCommand"/>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

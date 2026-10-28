@@ -51,6 +51,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private long _lastDroppedBytes;
     private int _disposed;
 
+    // 实时日志：每次开启创建新实例，停止后置空。接收/发送线程通过 Volatile 读取。
+    private RealtimeLogService? _logService;
+    private readonly Func<string, string?> _logPathPicker;
+    private string? _lastLogPath;
+
+    [ObservableProperty] private bool _isLogSaving;
+    [ObservableProperty] private string _logFilePath = string.Empty;
+
     [ObservableProperty] private string? _selectedPort;
     [ObservableProperty] private int _selectedBaudRate = 115200;
     [ObservableProperty] private int _selectedDataBits = 8;
@@ -66,9 +74,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public MainViewModel() : this(new SerialPortService()) { }
 
-    internal MainViewModel(ISerialPortService serialService)
+    internal MainViewModel(ISerialPortService serialService, Func<string, string?>? logPathPicker = null)
     {
         _serialService = serialService;
+        _logPathPicker = logPathPicker ?? DefaultLogPathPicker;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
         _displayQueue = Channel.CreateBounded<string>(new BoundedChannelOptions(DisplayQueueCapacity)
@@ -139,6 +148,104 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool CanSend => IsOpenPort;
     private bool CanExport => _canExport;
 
+    public string LogButtonText => IsLogSaving ? "停止日志" : "日志保存";
+
+    public string LogButtonToolTip => IsLogSaving
+        ? $"正在写入：{LogFilePath}\n点击停止并保存"
+        : "开启后持续写入接收与发送数据";
+
+    /// <summary>开启时弹出路径设置，再次点击停止并落盘。AsyncRelayCommand 默认禁止并发，快速重复点击不会重入。</summary>
+    [RelayCommand]
+    private async Task ToggleLogSavingAsync()
+    {
+        if (IsLogSaving)
+        {
+            await StopLogSavingAsync();
+            return;
+        }
+
+        await StartLogSavingAsync();
+    }
+
+    private async Task StartLogSavingAsync()
+    {
+        var initialPath = string.IsNullOrWhiteSpace(_lastLogPath) ? GetDefaultLogPath() : _lastLogPath;
+        var path = _logPathPicker(initialPath);
+        if (string.IsNullOrWhiteSpace(path)) return;   // 用户取消
+
+        var service = new RealtimeLogService();
+        try
+        {
+            var sessionInfo = $"端口：{_serialService.CurrentPortName ?? "未连接"}；" +
+                              $"显示模式：{(IsShowHex ? "HEX" : "文本")}；时间戳：{(ShowTimestamp ? "开" : "关")}";
+            await service.StartAsync(path, sessionInfo);
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("RealtimeLog.Start", ex);
+            await service.DisposeAsync();
+            StatusMessage = $"日志开启失败：{ex.Message}";
+            MessageBox.Show(StatusMessage, "日志保存", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        service.Faulted += OnLogFaulted;
+        _lastLogPath = path;
+        LogFilePath = path;
+        Volatile.Write(ref _logService, service);
+
+        IsLogSaving = true;
+        OnPropertyChanged(nameof(LogButtonText));
+        OnPropertyChanged(nameof(LogButtonToolTip));
+        StatusMessage = $"日志保存中：{path}";
+    }
+
+    private async Task StopLogSavingAsync()
+    {
+        var service = Volatile.Read(ref _logService);
+        Volatile.Write(ref _logService, null);
+
+        IsLogSaving = false;
+        OnPropertyChanged(nameof(LogButtonText));
+        OnPropertyChanged(nameof(LogButtonToolTip));
+
+        if (service is null) return;
+
+        service.Faulted -= OnLogFaulted;
+        // 先复位状态再等待落盘，接收线程此后不会再入队；服务内部幂等，故障路径重复停止也安全
+        await service.StopAsync();
+
+        var dropped = service.DroppedEntries;
+        StatusMessage = dropped > 0
+            ? $"日志已保存：{LogFilePath}（写入队列溢出，丢弃 {dropped} 条）"
+            : $"日志已保存：{LogFilePath}";
+    }
+
+    private void OnLogFaulted(object? sender, Exception e) => RunOnUi(async () =>
+    {
+        if (!IsLogSaving) return;   // 手动停止过程中的迟到故障不再打扰用户
+
+        await StopLogSavingAsync();
+        StatusMessage = $"日志写入失败，已自动停止：{e.Message}";
+        MessageBox.Show(StatusMessage, "日志保存", MessageBoxButton.OK, MessageBoxImage.Error);
+    });
+
+    private static string GetDefaultLogPath()
+    {
+        var directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+            directory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        return Path.Combine(directory, $"SerialLog_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+    }
+
+    private static string? DefaultLogPathPicker(string initialPath)
+    {
+        var dialog = new LogPathDialog(initialPath);
+        if (Application.Current?.MainWindow is { } owner) dialog.Owner = owner;
+        return dialog.ShowDialog() == true ? dialog.FilePath : null;
+    }
+
     [RelayCommand(CanExecute = nameof(CanConfigure))]
     private void RefreshPorts() => RefreshAvailablePorts();
 
@@ -189,6 +296,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
             if (IsAddCRC) data = [.. data, .. Crc16Modbus.Calculate(data)];
             await _serialService.WriteAsync(data);
+            // 串口真正写入成功才记日志，data 已包含可选的 CRC
+            Volatile.Read(ref _logService)?.TryEnqueue(LogDirection.Tx, DateTimeOffset.Now,
+                IsSendHex ? FormatHex(data) : Encoding.UTF8.GetString(data));
             StatusMessage = $"已发送 {data.Length} 字节";
         }
         catch (Exception ex)
@@ -334,8 +444,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 await foreach (var message in _serialService.ReadAllAsync(token).ConfigureAwait(false))
                 {
-                    // 暂停时直接丢弃：绝不入队，否则恢复瞬间要一次性拼接数十 MB 文本。
-                    if (_paused)
+                    var log = Volatile.Read(ref _logService);
+
+                    // 暂停且未记录日志时保留零解码开销：直接丢弃，绝不入显示队列，
+                    // 否则恢复瞬间要一次性拼接数十 MB 文本。
+                    if (_paused && log is null)
                     {
                         Interlocked.Add(ref _pausedDroppedBytes, message.Data.Length);
                         continue;
@@ -357,6 +470,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                         var chars = new char[_utf8Decoder.GetCharCount(message.Data, false)];
                         _utf8Decoder.GetChars(message.Data, chars, false);
                         text = new string(chars);
+                    }
+
+                    // 日志独立于「暂停显示」。写入的是不含显示时间戳的格式化内容，
+                    // 避免与日志行自身的毫秒时间戳重复。
+                    log?.TryEnqueue(LogDirection.Rx, message.Timestamp, text);
+
+                    // 暂停只影响界面刷新，日志仍持续记录
+                    if (_paused)
+                    {
+                        Interlocked.Add(ref _pausedDroppedBytes, message.Data.Length);
+                        continue;
                     }
 
                     if (_timestampEnabled)
@@ -574,6 +698,23 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             // 后台任务异常不能阻止后续的退订与释放，否则串口句柄会泄漏
             CrashLogger.Log("ViewModel.Dispose", ex);
+        }
+
+        // 接收/显示任务已结束，日志队列不会再有新数据，此刻停止可保证完整落盘。
+        // 关窗整体有 5 秒硬上限，这里再给日志 3 秒，避免慢盘拖住退出。
+        var log = Volatile.Read(ref _logService);
+        Volatile.Write(ref _logService, null);
+        if (log is not null)
+        {
+            log.Faulted -= OnLogFaulted;
+            try
+            {
+                await log.StopAsync().WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("ViewModel.DisposeLog", ex);
+            }
         }
 
         _serialService.StateChanged -= OnServiceStateChanged;
