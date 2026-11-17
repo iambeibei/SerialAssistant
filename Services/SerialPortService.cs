@@ -312,7 +312,15 @@ public sealed class SerialPortService : ISerialPortService
     }
 
     private void OnErrorReceived(object sender, SerialErrorReceivedEventArgs e)
-        => BeginFaultHandling(new IOException($"串口驱动报告错误：{e.EventType}"));
+    {
+        if (sender is not SerialPort serial) return;
+
+        // 与 OnDataReceived 一致：退订后事件仍可能在途。用引用比对挡掉
+        // 自己关端口引发的错误事件，避免用户主动断开时误报"串口通信异常"。
+        if (!ReferenceEquals(serial, Volatile.Read(ref _serialPort))) return;
+
+        BeginFaultHandling(new IOException($"串口驱动报告错误：{e.EventType}"));
+    }
 
     private void BeginFaultHandling(Exception exception)
     {

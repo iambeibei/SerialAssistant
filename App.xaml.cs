@@ -9,7 +9,7 @@ namespace SerialAssistant;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>连续 UI 异常超过该次数后直接退出，避免弹窗刷屏。</summary>
+    /// <summary>累计 UI 异常超过该次数后直接退出，避免弹窗刷屏。</summary>
     private const int MaxHandledDispatcherFaults = 3;
 
     private int _dispatcherFaultCount;

@@ -26,6 +26,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private const int DisplayQueueCapacity = 2048;
 
+    /// <summary>HEX 格式化查找表，避免逐字节 ToString("X2") 产生大量小字符串。</summary>
+    private const string HexDigits = "0123456789ABCDEF";
+
     private readonly ISerialPortService _serialService;
     private readonly Dispatcher _dispatcher;
     private readonly CancellationTokenSource _lifetimeCts = new();
@@ -467,9 +470,21 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                             _utf8Decoder.Reset();
                         }
 
-                        var chars = new char[_utf8Decoder.GetCharCount(message.Data, false)];
-                        _utf8Decoder.GetChars(message.Data, chars, false);
-                        text = new string(chars);
+                        var charCount = _utf8Decoder.GetCharCount(message.Data, false);
+                        if (charCount == 0)
+                        {
+                            // string.Create 长度为 0 时不调用回调，但仍须调用 GetChars 推进 Decoder
+                            // 状态（缓存尾部不完整字节），否则跨包多字节字符会丢失。
+                            _utf8Decoder.GetChars(message.Data, Span<char>.Empty, false);
+                            text = string.Empty;
+                        }
+                        else
+                        {
+                            // 直接解码进字符串缓冲，省掉中间 char[] 分配。回调同步执行于消费线程，
+                            // 不破坏「Decoder 只在消费线程使用」的约束；flush 参数保持 false 不变。
+                            text = string.Create(charCount, (decoder: _utf8Decoder, data: message.Data),
+                                static (span, state) => state.decoder.GetChars(state.data, span, false));
+                        }
                     }
 
                     // 日志独立于「暂停显示」。写入的是不含显示时间戳的格式化内容，
@@ -496,7 +511,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
                     if (!_displayQueue.Writer.TryWrite(text))
                     {
-                        Interlocked.Add(ref _pausedDroppedBytes, text.Length);
+                        // 按真实字节数记账（而非字符数），与暂停路径及状态栏「已丢弃 N 字节」口径一致
+                        Interlocked.Add(ref _pausedDroppedBytes, message.Data.Length);
                     }
                 }
 
@@ -526,11 +542,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         try
         {
+            // 复用同一缓冲，避免每 75ms 节拍都分配一个临时 StringBuilder。
+            // ToString() 产物不可变，清空复用是安全的。
+            var builder = new StringBuilder(MaxCharsPerFlush);
             while (!token.IsCancellationRequested)
             {
                 await Task.Delay(75, token).ConfigureAwait(false);
 
-                var builder = new StringBuilder();
+                builder.Clear();
                 while (builder.Length < MaxCharsPerFlush && _displayQueue.Reader.TryRead(out var chunk))
                 {
                     builder.Append(chunk);
@@ -655,13 +674,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (data.Length == 0) return string.Empty;
 
-        var builder = new StringBuilder(data.Length * 3);
-        for (var i = 0; i < data.Length; i++)
+        // 每字节 2 个 HEX 字符 + 1 个分隔空格（首字节无前导空格），一次成型，
+        // 避免逐字节 ToString("X2") 的 O(n) 次小字符串分配。
+        return string.Create(data.Length * 3 - 1, data, static (span, bytes) =>
         {
-            if (i > 0) builder.Append(' ');
-            builder.Append(data[i].ToString("X2"));
-        }
-        return builder.ToString();
+            var pos = 0;
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                if (i > 0) span[pos++] = ' ';
+                span[pos++] = HexDigits[bytes[i] >> 4];
+                span[pos++] = HexDigits[bytes[i] & 0xF];
+            }
+        });
     }
 
     private static bool ValidateHexInput(string text)

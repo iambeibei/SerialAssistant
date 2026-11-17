@@ -307,8 +307,12 @@ public sealed class RealtimeLogService : IAsyncDisposable
 
     private void AppendLogLine(LogDirection direction, DateTimeOffset timestamp, string line)
     {
+        // 该格式恒为 23 字符，直接在栈上格式化，省掉每行日志一次时间戳字符串分配。
+        // 不传 IFormatProvider，与 ToString(format) 一样沿用当前文化。
+        Span<char> stamp = stackalloc char[23];
+        timestamp.ToLocalTime().TryFormat(stamp, out var written, "yyyy-MM-dd HH:mm:ss.fff");
         _output.Append('[')
-            .Append(timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fff"))
+            .Append(stamp[..written])
             .Append(direction == LogDirection.Rx ? "] [RX] " : "] [TX] ")
             .Append(line)
             .AppendLine();
